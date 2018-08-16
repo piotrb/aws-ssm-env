@@ -14,6 +14,7 @@ var (
 	client *ssm.SSM
 	paths  []string
 	tags   []string
+	upcase bool
 
 	trueBool = true
 )
@@ -43,10 +44,13 @@ func initClient() {
 func initFlags() {
 	pathsFlag := flag.String("paths", "", "comma delimited string of parameter path hierarchies")
 	tagsFlag := flag.String("tags", "", "comma delimited string of tags to filter by")
+	upcaseFlag := flag.Bool("upcase", true, "make keys upcase")
+
 	flag.Parse()
 
 	initPaths(pathsFlag)
 	initTags(tagsFlag)
+	upcase = *upcaseFlag
 }
 
 func initPaths(pathsFlag *string) {
@@ -196,6 +200,9 @@ func printParams(params []*ssm.Parameter) {
 	for _, param := range params {
 		split := strings.Split(*param.Name, "/")
 		name := split[len(split)-1]
-		fmt.Printf("%s=%s\n", strings.ToUpper(name), *param.Value)
+		if upcase {
+			name = strings.ToUpper(name)
+		}
+		fmt.Printf("%s=%s\n", name, *param.Value)
 	}
 }
