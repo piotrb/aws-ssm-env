@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/kballard/go-shellquote"
 )
 
 var (
@@ -18,11 +20,13 @@ var (
 	tags           []string
 	upcase         bool
 	recursivePaths bool
+	shouldRun      bool
 
 	falseBool     = false
 	trueBool      = true
 	maxSleepWait  = 5000
 	maxRetryCount = 10
+	shell         = ""
 )
 
 func main() {
@@ -38,8 +42,12 @@ func main() {
 		panic(err)
 	}
 
-	// print as env variables
-	printParams(params)
+	if shouldRun {
+		execWithParams(params)
+	} else {
+		// print as env variables
+		printParams(params)
+	}
 }
 
 func randomSleep() {
@@ -57,6 +65,8 @@ func initFlags() {
 	tagsFlag := flag.String("tags", "", "comma delimited string of tags to filter by")
 	upcaseFlag := flag.Bool("upcase", true, "make keys upcase")
 	recursiveFlag := flag.Bool("recursive", false, "recurse through SSM heirarchy")
+	runFlag := flag.Bool("run", false, "execute any remaining arguments with the environment found")
+	shellFlag := flag.String("shell", "/bin/sh", "which shell to use with the -run command")
 
 	flag.Parse()
 
@@ -64,6 +74,8 @@ func initFlags() {
 	initTags(tagsFlag)
 	upcase = *upcaseFlag
 	recursivePaths = *recursiveFlag
+	shouldRun = *runFlag
+	shell = *shellFlag
 }
 
 func initPaths(pathsFlag *string) {
@@ -255,5 +267,41 @@ func printParams(params []*ssm.Parameter) {
 			name = strings.ToUpper(name)
 		}
 		fmt.Printf("%s=%s\n", name, *param.Value)
+	}
+}
+
+func paramsToEnv(params []*ssm.Parameter) []string {
+	var result []string
+	for _, param := range params {
+		split := strings.Split(*param.Name, "/")
+		name := split[len(split)-1]
+		if upcase {
+			name = strings.ToUpper(name)
+		}
+		value := fmt.Sprintf("%s=%s", name, *param.Value)
+		result = append(result, value)
+	}
+	return result
+}
+
+func execWithParams(params []*ssm.Parameter) {
+	words := []string{shell, "-c", shellquote.Join(flag.Args()...)}
+
+	command := words[0]
+	remainingParts := words[1:len(words)]
+	cmd := exec.Command(command, remainingParts...)
+
+	fmt.Printf("[aws-ssm-env] Running command: %v ...\n", words)
+
+	cmd.Env = append(os.Environ(), paramsToEnv(params)...)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[aws-ssm-env] Command failed - %v\n", err)
+		os.Exit(1)
 	}
 }
