@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/kballard/go-shellquote"
 )
 
 var (
@@ -43,7 +41,7 @@ func main() {
 	}
 
 	if shouldRun {
-		execWithParams(params)
+		execWithParams(params, shell, upcase)
 	} else {
 		// print as env variables
 		printParams(params)
@@ -267,41 +265,5 @@ func printParams(params []*ssm.Parameter) {
 			name = strings.ToUpper(name)
 		}
 		fmt.Printf("%s=%s\n", name, *param.Value)
-	}
-}
-
-func paramsToEnv(params []*ssm.Parameter) []string {
-	var result []string
-	for _, param := range params {
-		split := strings.Split(*param.Name, "/")
-		name := split[len(split)-1]
-		if upcase {
-			name = strings.ToUpper(name)
-		}
-		value := fmt.Sprintf("%s=%s", name, *param.Value)
-		result = append(result, value)
-	}
-	return result
-}
-
-func execWithParams(params []*ssm.Parameter) {
-	words := []string{shell, "-c", shellquote.Join(flag.Args()...)}
-
-	command := words[0]
-	remainingParts := words[1:len(words)]
-	cmd := exec.Command(command, remainingParts...)
-
-	fmt.Printf("[aws-ssm-env] Running command: %v ...\n", words)
-
-	cmd.Env = append(os.Environ(), paramsToEnv(params)...)
-
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-
-	err := cmd.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[aws-ssm-env] Command failed - %v\n", err)
-		os.Exit(1)
 	}
 }
