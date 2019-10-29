@@ -14,6 +14,16 @@ import (
 
 var childCmd *exec.Cmd
 
+var handledSignals = []os.Signal{
+	syscall.SIGINT,
+	syscall.SIGHUP,
+	syscall.SIGTERM,
+	syscall.SIGTTIN,
+	syscall.SIGTTOU,
+	syscall.SIGUSR1,
+	syscall.SIGUSR2,
+}
+
 func execWithParams(params []*ssm.Parameter, shell string, upcase bool) {
 	bashCmd := shellquote.Join(flag.Args()...)
 	words := []string{shell, "-c", fmt.Sprintf("exec %s", bashCmd)}
@@ -30,7 +40,7 @@ func execWithParams(params []*ssm.Parameter, shell string, upcase bool) {
 	childCmd.Stderr = os.Stderr
 	childCmd.Stdout = os.Stdout
 
-	handleSingnals("aws-ssm-env", []os.Signal{syscall.SIGINT, syscall.SIGTERM}, func(signal os.Signal) {
+	handleSingnals("aws-ssm-env", handledSignals, func(signal os.Signal) {
 		// nothing
 	})
 
