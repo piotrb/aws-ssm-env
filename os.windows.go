@@ -4,6 +4,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"syscall"
 )
 
@@ -15,4 +16,8 @@ var handledSignals = []os.Signal{
 	// syscall.SIGTTOU,
 	// syscall.SIGUSR1,
 	// syscall.SIGUSR2,
+}
+
+func detach(cmd *exec.Cmd) {
+	// noop on windows
 }

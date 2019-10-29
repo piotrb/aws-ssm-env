@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/kballard/go-shellquote"
@@ -30,9 +29,7 @@ func execWithParams(params []*ssm.Parameter, shell string, upcase bool) {
 	childCmd.Stderr = os.Stderr
 	childCmd.Stdout = os.Stdout
 
-	childCmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	detach(childCmd)
 
 	handleSingnals("aws-ssm-env", handledSignals, func(signal os.Signal) {
 		fmt.Printf("[aws-ssm-env] Relaying %v to child pid: %v", signal, childCmd.Process.Pid)
