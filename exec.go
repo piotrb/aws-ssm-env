@@ -6,23 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/kballard/go-shellquote"
 )
 
 var childCmd *exec.Cmd
-
-var handledSignals = []os.Signal{
-	syscall.SIGINT,
-	syscall.SIGHUP,
-	syscall.SIGTERM,
-	syscall.SIGTTIN,
-	syscall.SIGTTOU,
-	syscall.SIGUSR1,
-	syscall.SIGUSR2,
-}
 
 func execWithParams(params []*ssm.Parameter, shell string, upcase bool) {
 	bashCmd := shellquote.Join(flag.Args()...)
