@@ -19,6 +19,7 @@ var (
 	upcase         bool
 	recursivePaths bool
 	shouldRun      bool
+	format         string
 
 	falseBool     = false
 	trueBool      = true
@@ -65,6 +66,7 @@ func initFlags() {
 	recursiveFlag := flag.Bool("recursive", false, "recurse through SSM heirarchy")
 	runFlag := flag.Bool("run", false, "execute any remaining arguments with the environment found")
 	shellFlag := flag.String("shell", "/bin/sh", "which shell to use with the -run command")
+	formatFlag := flag.String("format", "plain", "how to format env output (plain|bash)")
 
 	flag.Parse()
 
@@ -74,6 +76,7 @@ func initFlags() {
 	recursivePaths = *recursiveFlag
 	shouldRun = *runFlag
 	shell = *shellFlag
+	format = *formatFlag
 }
 
 func initPaths(pathsFlag *string) {
@@ -264,6 +267,6 @@ func printParams(params []*ssm.Parameter) {
 		if upcase {
 			name = strings.ToUpper(name)
 		}
-		fmt.Printf("%s=%s\n", name, *param.Value)
+		fmt.Print(formatParam(format, name, *param.Value))
 	}
 }
