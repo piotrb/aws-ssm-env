@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	shellwords "github.com/buildkite/shellwords"
+	"gopkg.in/alessio/shellescape.v1"
 )
 
 func formatParam(format string, name string, value string) string {
@@ -11,7 +11,7 @@ func formatParam(format string, name string, value string) string {
 	case "plain":
 		return fmt.Sprintf("%s=%s\n", name, value)
 	case "bash":
-		return fmt.Sprintf("export %s=%s\n", shellwords.Quote(name), shellwords.Quote(value))
+		return fmt.Sprintf("export %s=%s\n", shellescape.Quote(name), shellescape.Quote(value))
 	default:
 		// fall back to plain format
 		return fmt.Sprintf("%s=%s\n", name, value)
